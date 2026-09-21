@@ -478,7 +478,7 @@ class _SimulatorHomeScreenState extends State<SimulatorHomeScreen> {
                     border: Border(left: BorderSide(color: Color(0xFF00A6B2), width: 4)),
                   ),
                   child: const Column(
-                    crossAxisAlignment: CrossAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text('Timing rules', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                       SizedBox(height: 6),
@@ -593,7 +593,7 @@ class _ActiveQuizScreenState extends State<ActiveQuizScreen> {
       appBar: AppBar(
         backgroundColor: const Color(0xFF073A57),
         title: Column(
-          crossAxisAlignment: CrossAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text('PMBOK TRAINING SIMULATOR_Muni', style: TextStyle(color: Colors.white, fontSize: 16)),
             Text(widget.practiceMode == 'sprint' ? 'Sprint Drill' : 'Full Practice', style: const TextStyle(color: Colors.white70, fontSize: 12)),
@@ -617,7 +617,7 @@ class _ActiveQuizScreenState extends State<ActiveQuizScreen> {
             child: SingleChildScrollView(
               padding: const EdgeInsets.all(16.0),
               child: Column(
-                crossAxisAlignment: CrossAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   OutlinedButton(
                     onPressed: () {
@@ -813,7 +813,7 @@ class FinalResultsScreen extends StatelessWidget {
           child: Padding(
             padding: const EdgeInsets.all(20.0),
             child: Column(
-              crossAxisAlignment: CrossAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text('Final Results', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Color(0xFF073A57))),
                 const SizedBox(height: 16),
@@ -839,7 +839,7 @@ class FinalResultsScreen extends StatelessWidget {
                       borderRadius: BorderRadius.circular(4),
                     ),
                     child: Column(
-                      crossAxisAlignment: CrossAlignment.start,
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const Text(
                           'Areas Needing Improvement',
