@@ -873,7 +873,7 @@ class FinalResultsScreen extends StatelessWidget {
                       ),
                     ),
                     child: Column(
-                      crossAxisAlignment: CrossAlignment.start,
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
                           'Question ${k + 1}: ${isCorrect ? "Correct" : expired[k] ? "Skipped" : "Incorrect"}',
