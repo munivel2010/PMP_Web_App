@@ -374,7 +374,7 @@ class _ExamQuizScreenState extends State<ExamQuizScreen> {
                 decoration: BoxDecoration(
                   color: selectedAnswer == q['correctAnswers'] ? Colors.green.shade50 : Colors.red.shade50,
                   borderRadius: BorderRadius.circular(8),
-                  border: BorderSide(
+                  border: Border.all(
                     color: selectedAnswer == q['correctAnswers'] ? Colors.green : Colors.red,
                   ),
                 ),
