@@ -88,7 +88,6 @@ class SimulatorHomeScreen extends StatefulWidget {
 class _SimulatorHomeScreenState extends State<SimulatorHomeScreen> {
   String practiceMode = 'sprint';
   int questionCount = 10;
-  String candidateName = '';
   String domain = 'Schedule';
   String difficulty = 'Ultra-hard';
   String selectedModel = 'gemini-3.5-flash-lite';
@@ -121,13 +120,14 @@ class _SimulatorHomeScreenState extends State<SimulatorHomeScreen> {
     'Adaptive and Hybrid',
   ];
 
-  // Feature 1: One-push link to get Gemini API key
   Future<void> _launchApiKeyUrl() async {
     final Uri url = Uri.parse('https://aistudio.google.com/app/apikey');
     if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Could not open Google AI Studio link.')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not open Google AI Studio link.')),
+        );
+      }
     }
   }
 
@@ -272,7 +272,7 @@ class _SimulatorHomeScreenState extends State<SimulatorHomeScreen> {
       appBar: AppBar(
         backgroundColor: const Color(0xFF073A57),
         title: const Column(
-          crossAxisAlignment: CrossAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text('PMBOK TRAINING SIMULATOR_Muni', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
             Text('Ready', style: TextStyle(color: Colors.white70, fontSize: 12)),
@@ -287,7 +287,7 @@ class _SimulatorHomeScreenState extends State<SimulatorHomeScreen> {
           child: Padding(
             padding: const EdgeInsets.all(20.0),
             child: Column(
-              crossAxisAlignment: CrossAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text('PMBOK Training Simulator_Muni', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Color(0xFF073A57))),
                 const SizedBox(height: 16),
@@ -352,7 +352,7 @@ class _SimulatorHomeScreenState extends State<SimulatorHomeScreen> {
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: Column(
-                    crossAxisAlignment: CrossAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       DropdownButtonFormField<String>(
                         value: selectedModel,
@@ -391,7 +391,6 @@ class _SimulatorHomeScreenState extends State<SimulatorHomeScreen> {
                             ),
                           ),
                           const SizedBox(width: 8),
-                          // Feature 1: Push button to get API key
                           ElevatedButton.icon(
                             style: ElevatedButton.styleFrom(
                               backgroundColor: const Color(0xFF00A6B2),
@@ -437,12 +436,12 @@ class _SimulatorHomeScreenState extends State<SimulatorHomeScreen> {
                         children: [
                           ElevatedButton(
                             onPressed: isTesting ? null : _testConnection,
-                            child: isTesting ? const CircularProgressIndicator() : const Text('Test Connection'),
+                            child: isTesting ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)) : const Text('Test Connection'),
                           ),
                           const SizedBox(width: 8),
                           ElevatedButton(
                             onPressed: isConnected && !isGenerating ? _generateQuestions : null,
-                            child: isGenerating ? const CircularProgressIndicator() : const Text('Generate Questions'),
+                            child: isGenerating ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)) : const Text('Generate Questions'),
                           ),
                           const SizedBox(width: 8),
                           ElevatedButton(
@@ -830,7 +829,6 @@ class FinalResultsScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 24),
 
-                // Feature 2: Needs Improvement / Study Focus Banner
                 if (correctCount < questions.length) ...[
                   Container(
                     width: double.infinity,
@@ -858,7 +856,6 @@ class FinalResultsScreen extends StatelessWidget {
                   const SizedBox(height: 16),
                 ],
 
-                // Itemized Results
                 ...List.generate(questions.length, (k) {
                   final q = questions[k];
                   final isCorrect = answers[k] == q.a;
