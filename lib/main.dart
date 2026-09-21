@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:url_launcher/url_launcher.dart';
 
 void main() {
   runApp(const PmpSimulatorApp());
@@ -97,7 +98,7 @@ class _SimulatorHomeScreenState extends State<SimulatorHomeScreen> {
   bool isTesting = false;
   bool isGenerating = false;
   String statusMessage = 'Enter an API key and test the connection.';
-  String statusType = ''; // 'ok', 'bad', or ''
+  String statusType = '';
 
   List<Question> questionBank = [];
 
@@ -119,6 +120,16 @@ class _SimulatorHomeScreenState extends State<SimulatorHomeScreen> {
     'AI and PMO',
     'Adaptive and Hybrid',
   ];
+
+  // Feature 1: One-push link to get Gemini API key
+  Future<void> _launchApiKeyUrl() async {
+    final Uri url = Uri.parse('https://aistudio.google.com/app/apikey');
+    if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not open Google AI Studio link.')),
+      );
+    }
+  }
 
   void _onModeChanged(String newMode) {
     setState(() {
@@ -281,7 +292,6 @@ class _SimulatorHomeScreenState extends State<SimulatorHomeScreen> {
                 const Text('PMBOK Training Simulator_Muni', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Color(0xFF073A57))),
                 const SizedBox(height: 16),
 
-                // Fields Grid
                 Wrap(
                   spacing: 16,
                   runSpacing: 16,
@@ -359,22 +369,40 @@ class _SimulatorHomeScreenState extends State<SimulatorHomeScreen> {
                         },
                       ),
                       const SizedBox(height: 12),
-                      TextField(
-                        controller: _apiKeyController,
-                        obscureText: true,
-                        decoration: const InputDecoration(
-                          labelText: 'API key',
-                          hintText: 'Paste Gemini API key',
-                          border: OutlineInputBorder(),
-                        ),
-                        onChanged: (_) {
-                          setState(() {
-                            isConnected = false;
-                            questionBank.clear();
-                            statusMessage = 'API key changed. Test the connection again.';
-                            statusType = '';
-                          });
-                        },
+                      Row(
+                        children: [
+                          Expanded(
+                            child: TextField(
+                              controller: _apiKeyController,
+                              obscureText: true,
+                              decoration: const InputDecoration(
+                                labelText: 'API key',
+                                hintText: 'Paste Gemini API key',
+                                border: OutlineInputBorder(),
+                              ),
+                              onChanged: (_) {
+                                setState(() {
+                                  isConnected = false;
+                                  questionBank.clear();
+                                  statusMessage = 'API key changed. Test the connection again.';
+                                  statusType = '';
+                                });
+                              },
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          // Feature 1: Push button to get API key
+                          ElevatedButton.icon(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF00A6B2),
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                            ),
+                            onPressed: _launchApiKeyUrl,
+                            icon: const Icon(Icons.key),
+                            label: const Text('Get Key'),
+                          ),
+                        ],
                       ),
                       const SizedBox(height: 12),
 
@@ -444,7 +472,6 @@ class _SimulatorHomeScreenState extends State<SimulatorHomeScreen> {
                 ),
                 const SizedBox(height: 20),
 
-                // Timing Rules Notice
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: const BoxDecoration(
@@ -472,7 +499,7 @@ class _SimulatorHomeScreenState extends State<SimulatorHomeScreen> {
 }
 
 // ----------------------------------------------------
-// Active Quiz Screen (Timer, Navigator, Options)
+// Active Quiz Screen
 // ----------------------------------------------------
 class ActiveQuizScreen extends StatefulWidget {
   final String practiceMode;
@@ -617,7 +644,6 @@ class _ActiveQuizScreenState extends State<ActiveQuizScreen> {
                   Text(q.q, style: const TextStyle(fontSize: 18, height: 1.5)),
                   const SizedBox(height: 20),
 
-                  // Answers
                   ...List.generate(
                     q.o.length,
                     (k) => Card(
@@ -647,7 +673,6 @@ class _ActiveQuizScreenState extends State<ActiveQuizScreen> {
                   ),
                   const SizedBox(height: 20),
 
-                  // Grid Navigator
                   const Text('Question Navigator', style: TextStyle(fontWeight: FontWeight.bold)),
                   const SizedBox(height: 8),
                   Wrap(
@@ -692,7 +717,6 @@ class _ActiveQuizScreenState extends State<ActiveQuizScreen> {
             ),
           ),
 
-          // Footer Toolbar
           Container(
             padding: const EdgeInsets.all(16),
             color: const Color(0xFFF3F6F7),
@@ -795,7 +819,6 @@ class FinalResultsScreen extends StatelessWidget {
                 const Text('Final Results', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Color(0xFF073A57))),
                 const SizedBox(height: 16),
 
-                // Stats Bar
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceAround,
                   children: [
@@ -806,6 +829,34 @@ class FinalResultsScreen extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 24),
+
+                // Feature 2: Needs Improvement / Study Focus Banner
+                if (correctCount < questions.length) ...[
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFFF4F3),
+                      border: const Border(left: BorderSide(color: Color(0xFFC43832), width: 4)),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAlignment.start,
+                      children: [
+                        const Text(
+                          'Areas Needing Improvement',
+                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Color(0xFFC43832)),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          'Review the incorrectly answered questions below. Focus on PMI Mindset concepts such as evaluating risk before taking action, empowering the team, and consulting project plans.',
+                          style: TextStyle(color: Colors.grey.shade800, fontSize: 13),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                ],
 
                 // Itemized Results
                 ...List.generate(questions.length, (k) {
@@ -834,7 +885,8 @@ class FinalResultsScreen extends StatelessWidget {
                         const SizedBox(height: 4),
                         Text('Your answer: ${answers[k] == null ? "Not answered" : q.o[answers[k]!]}'),
                         Text('Correct answer: ${q.o[q.a]}'),
-                        Text('Explanation: ${q.e}'),
+                        const SizedBox(height: 4),
+                        Text('Explanation: ${q.e}', style: const TextStyle(fontWeight: FontWeight.w500)),
                       ],
                     ),
                   );
