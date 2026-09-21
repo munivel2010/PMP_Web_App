@@ -349,7 +349,7 @@ class _ExamScreenState extends State<ExamScreen> {
                   color: Colors.blue.shade50,
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: Text("Explanation: ${q.explanation}", style: const TextStyle(color: Colors.black80)),
+                child: Text("Explanation: ${q.explanation}", style: const TextStyle(color: Colors.black87)),
               ),
             ]
           ],
