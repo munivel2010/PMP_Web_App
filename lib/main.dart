@@ -121,7 +121,7 @@ class _SimulatorHomeScreenState extends State<SimulatorHomeScreen> {
   ];
 
   Future<void> _launchApiKeyUrl() async {
-    final Uri url = Uri.parse('https://aistudio.google.com/app/apikey');
+    final Uri url = Uri.parse('https://aistudio.google.com/apikey');
     if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -399,7 +399,7 @@ class _SimulatorHomeScreenState extends State<SimulatorHomeScreen> {
                             ),
                             onPressed: _launchApiKeyUrl,
                             icon: const Icon(Icons.key),
-                            label: const Text('Get Key'),
+                            label: const Text('Get API Key'),
                           ),
                         ],
                       ),
@@ -769,7 +769,7 @@ class _ActiveQuizScreenState extends State<ActiveQuizScreen> {
 }
 
 // ----------------------------------------------------
-// Final Results Modal Screen
+// Final Results Modal Screen with PMI Performance Dashboard
 // ----------------------------------------------------
 class FinalResultsScreen extends StatelessWidget {
   final List<Question> questions;
@@ -785,21 +785,35 @@ class FinalResultsScreen extends StatelessWidget {
     required this.usedMinutes,
   });
 
+  String _getPerformanceBand(double percentage) {
+    if (percentage >= 80) return 'Above Target';
+    if (percentage >= 65) return 'Target';
+    if (percentage >= 50) return 'Below Target';
+    return 'Needs Improvement';
+  }
+
   @override
   Widget build(BuildContext context) {
     int correctCount = 0;
     int answeredCount = 0;
+    Map<String, List<int>> domainStats = {}; // {Domain: [Correct, Total]}
 
     for (int i = 0; i < questions.length; i++) {
+      String topic = questions[i].topic;
+      domainStats.putIfAbsent(topic, () => [0, 0]);
+      domainStats[topic]![1]++; // Total count increment
+
       if (answers[i] != null) {
         answeredCount++;
         if (answers[i] == questions[i].a) {
           correctCount++;
+          domainStats[topic]![0]++; // Correct count increment
         }
       }
     }
 
     int percentage = ((correctCount / questions.length) * 100).round();
+    String overallBand = _getPerformanceBand(percentage.toDouble());
 
     return Scaffold(
       appBar: AppBar(
@@ -818,6 +832,7 @@ class FinalResultsScreen extends StatelessWidget {
                 const Text('Final Results', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Color(0xFF073A57))),
                 const SizedBox(height: 16),
 
+                // Summary Stats
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceAround,
                   children: [
@@ -829,33 +844,84 @@ class FinalResultsScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 24),
 
-                if (correctCount < questions.length) ...[
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(14),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFFFF4F3),
-                      border: const Border(left: BorderSide(color: Color(0xFFC43832), width: 4)),
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Areas Needing Improvement',
-                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Color(0xFFC43832)),
-                        ),
-                        const SizedBox(height: 6),
-                        Text(
-                          'Review the incorrectly answered questions below. Focus on PMI Mindset concepts such as evaluating risk before taking action, empowering the team, and consulting project plans.',
-                          style: TextStyle(color: Colors.grey.shade800, fontSize: 13),
-                        ),
-                      ],
-                    ),
+                // PMI Style Performance Dashboard Widget
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFBFCFC),
+                    border: Border.all(color: const Color(0xFFB8C5CB)),
+                    borderRadius: BorderRadius.circular(6),
                   ),
-                  const SizedBox(height: 16),
-                ],
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('Performance Dashboard', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF073A57))),
+                      const SizedBox(height: 12),
 
+                      // 4-Band Color Scale Bar
+                      Row(
+                        children: [
+                          Expanded(child: Container(height: 30, color: const Color(0xFFB7443E), child: const Center(child: Text('Needs Improvement', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold))))),
+                          Expanded(child: Container(height: 30, color: const Color(0xFFE38B2C), child: const Center(child: Text('Below Target', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold))))),
+                          Expanded(child: Container(height: 30, color: const Color(0xFF2B8A70), child: const Center(child: Text('Target', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold))))),
+                          Expanded(child: Container(height: 30, color: const Color(0xFF075985), child: const Center(child: Text('Above Target', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold))))),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+
+                      // Score Marker
+                      Center(
+                        child: Text(
+                          '▲ $percentage% · $overallBand',
+                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Color(0xFF073A57)),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Domain Breakdown Progress Rows
+                      const Text('Domain Breakdown:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                      const SizedBox(height: 8),
+                      ...domainStats.entries.map((entry) {
+                        int c = entry.value[0];
+                        int t = entry.value[1];
+                        double p = t == 0 ? 0 : (c / t) * 100;
+                        String band = _getPerformanceBand(p);
+
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 6.0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(entry.key, style: const TextStyle(fontWeight: FontWeight.w600)),
+                                  Text('$band · ${p.round()}%', style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF00A6B2))),
+                                ],
+                              ),
+                              const SizedBox(height: 4),
+                              LinearProgressIndicator(
+                                value: p / 100,
+                                minHeight: 10,
+                                backgroundColor: const Color(0xFFDCE5E9),
+                                color: const Color(0xFF00A6B2),
+                              ),
+                            ],
+                          ),
+                        );
+                      }),
+
+                      const SizedBox(height: 8),
+                      const Text(
+                        'PMI-style practice indicator only. This is not an official PMI examination result.',
+                        style: TextStyle(fontSize: 11, color: Colors.grey, fontStyle: FontStyle.italic),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 24),
+
+                // Itemized Review
                 ...List.generate(questions.length, (k) {
                   final q = questions[k];
                   final isCorrect = answers[k] == q.a;
