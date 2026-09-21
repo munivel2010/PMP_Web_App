@@ -37,7 +37,7 @@ class MainNavigationScreen extends StatefulWidget {
 class _MainNavigationScreenState extends State<MainNavigationScreen> {
   int _selectedIndex = 0;
 
-  // Domain Stats Tracker
+  // Domain Performance Metrics
   int totalSolved = 0;
   int correctPeople = 0;
   int totalPeople = 0;
@@ -46,24 +46,26 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
   int correctBusiness = 0;
   int totalBusiness = 0;
 
+  void _recordAnswer(String domain, bool isCorrect) {
+    setState(() {
+      totalSolved++;
+      if (domain == 'People') {
+        totalPeople++;
+        if (isCorrect) correctPeople++;
+      } else if (domain == 'Process') {
+        totalProcess++;
+        if (isCorrect) correctProcess++;
+      } else if (domain == 'Business') {
+        totalBusiness++;
+        if (isCorrect) correctBusiness++;
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final screens = [
-      ExamScreen(onQuestionAnswered: (domain, isCorrect) {
-        setState(() {
-          totalSolved++;
-          if (domain == 'People') {
-            totalPeople++;
-            if (isCorrect) correctPeople++;
-          } else if (domain == 'Process') {
-            totalProcess++;
-            if (isCorrect) correctProcess++;
-          } else if (domain == 'Business') {
-            totalBusiness++;
-            if (isCorrect) correctBusiness++;
-          }
-        });
-      }),
+      PracticeModeSelectionScreen(onQuestionAnswered: _recordAnswer),
       PerformanceDashboard(
         totalSolved: totalSolved,
         correctPeople: correctPeople,
@@ -90,7 +92,333 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
   }
 }
 
-// --- PMP Style Performance Dashboard ---
+// ----------------------------------------------------
+// Mode Selection Screen (Sprint, Full Test, Domain)
+// ----------------------------------------------------
+class PracticeModeSelectionScreen extends StatelessWidget {
+  final Function(String domain, bool isCorrect) onQuestionAnswered;
+
+  const PracticeModeSelectionScreen({super.key, required this.onQuestionAnswered});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        backgroundColor: const Color(0xFF1A365D),
+        title: const Text('PMP® Exam Practice Modes', style: TextStyle(color: Colors.white, fontSize: 18)),
+      ),
+      body: ListView(
+        padding: const EdgeInsets.all(16.0),
+        children: [
+          const Text(
+            'Choose Practice Category',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF1A365D)),
+          ),
+          const SizedBox(height: 16),
+          _buildModeCard(
+            context,
+            title: 'Sprint Practice Test',
+            subtitle: '10 Questions • 15 Minutes Timer',
+            icon: Icons.bolt,
+            color: Colors.orange,
+            durationSeconds: 15 * 60,
+            modeName: 'Sprint Practice',
+          ),
+          _buildModeCard(
+            context,
+            title: 'Full Mock Exam',
+            subtitle: '180 Questions • 230 Minutes Timer',
+            icon: Icons.assignment,
+            color: Colors.blue,
+            durationSeconds: 230 * 60,
+            modeName: 'Full Mock Exam',
+          ),
+          _buildModeCard(
+            context,
+            title: 'Domain Specific Practice',
+            subtitle: 'ECO Domains (People, Process, Business)',
+            icon: Icons.category,
+            color: Colors.green,
+            durationSeconds: 30 * 60,
+            modeName: 'Domain Practice',
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildModeCard(
+    BuildContext context, {
+    required String title,
+    required String subtitle,
+    required IconData icon,
+    required Color color,
+    required int durationSeconds,
+    required String modeName,
+  }) {
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      child: ListTile(
+        leading: CircleAvatar(
+          backgroundColor: color.withAlpha(30),
+          child: Icon(icon, color: color),
+        ),
+        title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
+        subtitle: Text(subtitle),
+        trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => ExamQuizScreen(
+                modeName: modeName,
+                durationSeconds: durationSeconds,
+                onQuestionAnswered: onQuestionAnswered,
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+// ----------------------------------------------------
+// Active Quiz Screen with Timer & Working Option Selection
+// ----------------------------------------------------
+class ExamQuizScreen extends StatefulWidget {
+  final String modeName;
+  final int durationSeconds;
+  final Function(String domain, bool isCorrect) onQuestionAnswered;
+
+  const ExamQuizScreen({
+    super.key,
+    required this.modeName,
+    required this.durationSeconds,
+    required this.onQuestionAnswered,
+  });
+
+  @override
+  State<ExamQuizScreen> createState() => _ExamQuizScreenState();
+}
+
+class _ExamQuizScreenState extends State<ExamQuizScreen> {
+  late int _remainingSeconds;
+  Timer? _timer;
+
+  int currentQuestionIndex = 0;
+  int? selectedAnswer;
+  bool isSubmitted = false;
+
+  final List<Map<String, dynamic>> questions = [
+    {
+      "id": "Q1",
+      "domain": "People",
+      "question": "A conflict arises between team members regarding deliverables. What should the PM do FIRST?",
+      "options": [
+        "Escalate to the project sponsor",
+        "Encourage team members to resolve it directly",
+        "Reassign team members immediately",
+        "Issue a formal warning"
+      ],
+      "correctAnswers": 1,
+      "explanation": "PM Mindset: Direct collaboration and empowering the team is preferred before escalation."
+    },
+    {
+      "id": "Q2",
+      "domain": "Process",
+      "question": "A high-impact risk materializes during project execution. What is the FIRST step?",
+      "options": [
+        "Evaluate impact & consult the Risk Response Plan",
+        "Request contingency budget immediately",
+        "Change the baseline schedule",
+        "Inform executive management"
+      ],
+      "correctAnswers": 0,
+      "explanation": "PM Mindset: Always evaluate impact and execute planned responses prior to taking corrective measures."
+    },
+    {
+      "id": "Q3",
+      "domain": "Business",
+      "question": "A regulatory compliance policy changes during execution. What should the PM do FIRST?",
+      "options": [
+        "Update the business case and analyze compliance gaps",
+        "Halt all project deliverables immediately",
+        "Request additional funding from stakeholders",
+        "Ignore changes until the next project phase"
+      ],
+      "correctAnswers": 0,
+      "explanation": "PM Mindset: Understand business environment impacts and evaluate compliance requirements thoroughly."
+    }
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _remainingSeconds = widget.durationSeconds;
+    _startTimer();
+  }
+
+  void _startTimer() {
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (_remainingSeconds > 0) {
+        setState(() => _remainingSeconds--);
+      } else {
+        timer.cancel();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  String _formatTimer(int totalSeconds) {
+    final minutes = (totalSeconds ~/ 60).toString().padLeft(2, '0');
+    final seconds = (totalSeconds % 60).toString().padLeft(2, '0');
+    return "$minutes:$seconds";
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final q = questions[currentQuestionIndex];
+    final options = List<String>.from(q['options']);
+
+    return Scaffold(
+      appBar: AppBar(
+        backgroundColor: const Color(0xFF1A365D),
+        title: Text(widget.modeName, style: const TextStyle(color: Colors.white, fontSize: 18)),
+        actions: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            child: Row(
+              children: [
+                const Icon(Icons.timer, color: Colors.amber, size: 20),
+                const SizedBox(width: 6),
+                Text(
+                  _formatTimer(_remainingSeconds),
+                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+                ),
+              ],
+            ),
+          )
+        ],
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text("Domain: ${q['domain']}", style: const TextStyle(color: Colors.blue, fontWeight: FontWeight.bold)),
+                Text("Question ${currentQuestionIndex + 1} of ${questions.length}", style: const TextStyle(color: Colors.grey)),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Text(q['question'], style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 20),
+
+            // Option List
+            ...List.generate(
+              options.length,
+              (index) => Card(
+                color: selectedAnswer == index ? Colors.blue.shade50 : Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  side: BorderSide(
+                    color: selectedAnswer == index ? const Color(0xFF1A365D) : Colors.grey.shade300,
+                  ),
+                ),
+                child: RadioListTile<int>(
+                  value: index,
+                  groupValue: selectedAnswer,
+                  title: Text(options[index]),
+                  activeColor: const Color(0xFF1A365D),
+                  onChanged: isSubmitted
+                      ? null
+                      : (val) {
+                          setState(() {
+                            selectedAnswer = val;
+                          });
+                        },
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+
+            if (!isSubmitted)
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF1A365D)),
+                  onPressed: selectedAnswer == null
+                      ? null
+                      : () {
+                          setState(() => isSubmitted = true);
+                          bool isCorrect = selectedAnswer == q['correctAnswers'];
+                          widget.onQuestionAnswered(q['domain'], isCorrect);
+                        },
+                  child: const Text("Submit Answer", style: TextStyle(color: Colors.white)),
+                ),
+              ),
+
+            if (isSubmitted) ...[
+              const SizedBox(height: 15),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: selectedAnswer == q['correctAnswers'] ? Colors.green.shade50 : Colors.red.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                  border: BorderSide(
+                    color: selectedAnswer == q['correctAnswers'] ? Colors.green : Colors.red,
+                  ),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      selectedAnswer == q['correctAnswers'] ? "Correct Answer!" : "Incorrect Answer",
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: selectedAnswer == q['correctAnswers'] ? Colors.green.shade800 : Colors.red.shade800,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text("Explanation: ${q['explanation']}", style: const TextStyle(color: Colors.black87)),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 15),
+              if (currentQuestionIndex < questions.length - 1)
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton(
+                    onPressed: () {
+                      setState(() {
+                        currentQuestionIndex++;
+                        selectedAnswer = null;
+                        isSubmitted = false;
+                      });
+                    },
+                    child: const Text("Next Question"),
+                  ),
+                )
+            ]
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ----------------------------------------------------
+// PMP Style Performance Dashboard
+// ----------------------------------------------------
 class PerformanceDashboard extends StatelessWidget {
   final int totalSolved;
   final int correctPeople;
@@ -221,137 +549,6 @@ class PerformanceDashboard extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text("$correct / $total Score Points", style: const TextStyle(fontSize: 12, color: Colors.grey)),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// --- Main Quiz Engine ---
-class QuestionModel {
-  final String id;
-  final String domain;
-  final String type;
-  final String question;
-  final List<String> options;
-  final dynamic correctAnswers;
-  final String explanation;
-
-  QuestionModel({
-    required this.id,
-    required this.domain,
-    required this.type,
-    required this.question,
-    required this.options,
-    required this.correctAnswers,
-    required this.explanation,
-  });
-}
-
-class ExamScreen extends StatefulWidget {
-  final Function(String domain, bool isCorrect) onQuestionAnswered;
-  const ExamScreen({super.key, required this.onQuestionAnswered});
-
-  @override
-  State<ExamScreen> createState() => _ExamScreenState();
-}
-
-class _ExamScreenState extends State<ExamScreen> {
-  int currentQuestionIndex = 0;
-  int? selectedAnswer;
-  bool isSubmitted = false;
-
-  final List<QuestionModel> questions = [
-    QuestionModel(
-      id: "Q1",
-      domain: "People",
-      type: "single",
-      question: "A conflict arises between team members regarding deliverables. What should the PM do FIRST?",
-      options: [
-        "Escalate to the project sponsor",
-        "Encourage team members to resolve it directly",
-        "Reassign team members immediately",
-        "Issue a formal warning"
-      ],
-      correctAnswers: 1,
-      explanation: "PM Mindset: Direct collaboration and empowering the team is preferred before escalation."
-    ),
-    QuestionModel(
-      id: "Q2",
-      domain: "Process",
-      type: "single",
-      question: "A high-impact risk materializes during project execution. What is the FIRST step?",
-      options: [
-        "Evaluate impact & consult the Risk Response Plan",
-        "Request contingency budget immediately",
-        "Change the baseline schedule",
-        "Inform executive management"
-      ],
-      correctAnswers: 0,
-      explanation: "PM Mindset: Always evaluate impact and execute planned responses prior to taking corrective measures."
-    )
-  ];
-
-  @override
-  Widget build(BuildContext context) {
-    final q = questions[currentQuestionIndex];
-
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: const Color(0xFF1A365D),
-        title: const Text('PMP Practice Exam', style: TextStyle(color: Colors.white, fontSize: 18)),
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text("Domain: ${q.domain}", style: const TextStyle(color: Colors.blue, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 10),
-            Text(q.question, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 20),
-            ...List.generate(
-              q.options.length,
-              (index) => Card(
-                color: selectedAnswer == index ? Colors.blue.shade50 : null,
-                child: ListTile(
-                  title: Text(q.options[index]),
-                  leading: Radio<int>(
-                    value: index,
-                    groupValue: selectedAnswer,
-                    onChanged: isSubmitted ? null : (val) => setState(() => selectedAnswer = val),
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(height: 20),
-            if (!isSubmitted)
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF1A365D)),
-                  onPressed: selectedAnswer == null
-                      ? null
-                      : () {
-                          setState(() => isSubmitted = true);
-                          bool isCorrect = selectedAnswer == q.correctAnswers;
-                          widget.onQuestionAnswered(q.domain, isCorrect);
-                        },
-                  child: const Text("Submit Answer", style: TextStyle(color: Colors.white)),
-                ),
-              ),
-            if (isSubmitted) ...[
-              const SizedBox(height: 15),
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.blue.shade50,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text("Explanation: ${q.explanation}", style: const TextStyle(color: Colors.black87)),
-              ),
-            ]
           ],
         ),
       ),
