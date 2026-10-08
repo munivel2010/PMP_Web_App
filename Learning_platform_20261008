@@ -1,0 +1,633 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Language Learning Platform</title>
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src https://generativelanguage.googleapis.com; object-src 'none'; base-uri 'self'">
+    
+    <style>
+        /* ==========================================
+           1. CSS THEME & VARIABLES
+           ========================================== */
+        :root {
+            --navy: #073a57;
+            --teal: #00a6b2;
+            --bg: #eef3f5;
+            --line: #b8c5cb;
+            --ok: #218739;
+            --bad: #c43832;
+            --grey: #d8dee2;
+        }
+
+        * { box-sizing: border-box; }
+        body { margin: 0; font: 15px Segoe UI, Arial; background: var(--bg); color: var(--rival, #17313f); }
+        button, input, select, textarea { font: inherit; }
+        .hidden { display: none !important; }
+
+        /* ==========================================
+           2. LAYOUT & STRUCTURE
+           ========================================== */
+        header {
+            height: 68px; background: var(--navy); color: #fff;
+            border-bottom: 5px solid var(--teal);
+            display: flex; align-items: center; justify-content: space-between; padding: 0 24px;
+        }
+        .brand { font-size: 21px; font-weight: 750; }
+        .small { font-size: 12px; opacity: .8; }
+        .timer { font-size: 21px; font-weight: 700; border: 1px solid #7290a0; padding: 8px 14px; }
+
+        .layout { display: grid; grid-template-columns: 1fr 285px; min-height: calc(100vh - 68px); }
+        main { background: #fff; padding: 24px 32px 100px; }
+        .side { padding: 18px; border-left: 1px solid var(--line); }
+
+        .sectionName { font-weight: 800; color: var(--navy); margin-bottom: 5px; }
+        .progress { font-size: 12px; margin-bottom: 14px; }
+        .meta { display: flex; justify-content: space-between; margin: 18px 0; font-weight: 700; }
+        .stem { font-size: 19px; line-height: 1.55; max-width: 1000px; white-space: pre-wrap; }
+        .answers { display: grid; gap: 10px; max-width: 1000px; margin-top: 18px; }
+        
+        .option { display: flex; gap: 12px; padding: 14px; border: 1px solid #a8b6bd; cursor: pointer; }
+        .option.selected { border: 2px solid var(--navy); background: #eaf5f7; padding: 13px; }
+
+        .grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 7px; }
+        .qbtn { height: 38px; border: 1px solid #87969e; background: var(--grey); font-weight: 700; }
+        .qbtn.done { background: var(--ok); color: #fff; }
+        .qbtn.current { background: #1678b8; color: #fff; outline: 2px solid var(--teal); }
+
+        .footer {
+            position: fixed; bottom: 0; left: 0; right: 285px; background: #f3f6f7;
+            border-top: 1px solid var(--line); padding: 14px 32px; display: flex; justify-content: space-between;
+        }
+
+        /* ==========================================
+           3. UI COMPONENTS & MODALS
+           ========================================== */
+        .btn { border: 1px solid #738894; background: #fff; color: #17394b; padding: 9px 14px; border-radius: 4px; font-weight: 650; cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; }
+        .btn:disabled { opacity: .45; cursor: not-allowed; }
+        .primary { background: var(--navy); color: #fff; }
+        .danger { border-color: var(--bad); color: var(--bad); }
+
+        .modal { position: fixed; inset: 0; background: #052b40bd; display: flex; align-items: center; justify-content: center; padding: 20px; z-index: 20; }
+        .card { background: #fff; width: min(980px, 96vw); max-height: 88vh; overflow: auto; padding: 24px 28px; border-radius: 6px; box-shadow: 0 20px 60px #0005; }
+        .card h1, .card h2, .card h3 { color: var(--navy); }
+
+        .fields { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+        .fields label { display: grid; gap: 5px; }
+        .fields input, .fields select { padding: 10px; }
+        .box { border: 1px solid var(--line); padding: 14px; margin-top: 16px; background: #fbfcfc; }
+        .actions { display: flex; justify-content: flex-end; gap: 9px; flex-wrap: wrap; margin-top: 18px; }
+
+        .status { padding: 11px; background: #eef6f7; border-left: 4px solid var(--teal); margin-top: 12px; }
+        .status.ok { background: #eef8f1; border-color: var(--ok); }
+        .status.bad { background: #fff4f3; border-color: var(--bad); }
+
+        textarea { width: 100%; min-height: 85px; padding: 10px; }
+        .sourceRow { display: flex; gap: 9px; align-items: center; flex-wrap: wrap; }
+        .badge { padding: 4px 8px; border-radius: 12px; background: #dfecee; font-size: 12px; font-weight: 700; }
+
+        .summary { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+        .stat { text-align: center; padding: 15px; background: #edf3f5; border-top: 4px solid var(--navy); }
+        .stat b { display: block; font-size: 25px; }
+
+        .result { padding: 12px; border-left: 5px solid var(--ok); background: #f3f8f5; margin: 10px 0; }
+        .result.wrong { border-color: var(--bad); background: #fff4f3; }
+        .barRow { display: grid; grid-template-columns: 180px 1fr 80px; gap: 10px; align-items: center; margin: 10px 0; }
+        .bar { height: 14px; background: #dce5e9; }
+        .fill { height: 100%; background: var(--teal); }
+
+        .toast { position: fixed; right: 20px; top: 82px; background: var(--ok); color: #fff; padding: 12px 16px; z-index: 99; }
+        .toast.bad { background: var(--bad); }
+
+        .recommendation { border: 1px solid #8fb7c6; background: #f4fafb; padding: 18px; margin: 16px 0; }
+        .recommendation h3 { margin: 0 0 12px; color: var(--navy); }
+        .recGrid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+        .recBlock { background: #fff; border-left: 4px solid var(--teal); padding: 12px; }
+        .recBlock.focus { border-color: #f2a900; }
+        .recBlock.plan { grid-column: 1/-1; border-color: var(--navy); }
+        .recBlock ul { margin: 7px 0 0; padding-left: 20px; }
+        .recLevel { font-weight: 700; color: var(--navy); margin-top: 10px; }
+
+        @media(max-width: 820px) {
+            .recGrid { grid-template-columns: 1fr; }
+            .recBlock.plan { grid-column: auto; }
+            .layout { grid-template-columns: 1fr; }
+            .side { display: none; }
+            .footer { right: 0; }
+            .fields, .summary { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ==========================================
+       4. APPLICATION UI / HTML STRUCTURE
+       ========================================== -->
+    <header>
+        <div>
+            <div class="brand">Language Learning Platform</div>
+            <div class="small" id="modeLabel">Ready</div>
+        </div>
+        <div class="timer" id="timer">00:00:00</div>
+    </header>
+
+    <div class="layout">
+        <main>
+            <div class="sectionName" id="sectionTitle"></div>
+            <div class="progress" id="sectionProgress"></div>
+            <div class="meta">
+                <span id="num"></span>
+                <span id="skill"></span>
+            </div>
+            <div class="stem" id="stem"></div>
+            <div id="answers" class="answers"></div>
+            
+            <label id="confidenceWrap" class="hidden" style="margin-top: 18px; display: inline-block;">
+                <b>Confidence:</b> 
+                <select id="confidence">
+                    <option value="">Select</option>
+                    <option>Very confident</option>
+                    <option>Confident</option>
+                    <option>Unsure</option>
+                    <option>Guess</option>
+                </select>
+            </label>
+        </main>
+        <aside class="side">
+            <b>Current section questions</b>
+            <div id="nav" class="grid" style="margin-top: 8px;"></div>
+            <p class="small" style="margin-top: 12px;">Green: answered · Grey: unanswered · Blue: current</p>
+        </aside>
+    </div>
+
+    <div class="footer">
+        <button class="btn danger" id="finishSection">Finish Section</button>
+        <div>
+            <button class="btn" id="prev">Previous</button> 
+            <button class="btn primary" id="next">Next Question</button>
+        </div>
+    </div>
+
+    <!-- Home Configuration Modal -->
+    <div class="modal" id="home">
+        <section class="card">
+            <h1>Language Learning Platform</h1>
+            <div class="fields">
+                <label>Training strategy
+                    <select id="practiceMode">
+                        <option value="sprint">Sprint Drill (30 sec/question)</option>
+                        <option value="full" selected>Full Practice (60 sec/question)</option>
+                    </select>
+                </label>
+                <label>Question count
+                    <select id="count">
+                        <option>8</option>
+                        <option selected>12</option>
+                        <option>20</option>
+                    </select>
+                </label>
+                <label>Evaluation focus
+                    <select id="focus">
+                        <option selected>Complete CERT evaluation</option>
+                        <option>Grammar and Vocabulary</option>
+                        <option>Reading Comprehension</option>
+                        <option>Listening and Context</option>
+                        <option>Functional Language</option>
+                    </select>
+                </label>
+                <label>CEFR level
+                    <select id="level">
+                        <option>A1</option>
+                        <option>A2</option>
+                        <option selected>B1</option>
+                        <option>B2</option>
+                        <option>C1</option>
+                    </select>
+                </label>
+                <label>Target language
+                    <select id="target">
+                        <option selected>English</option>
+                        <option>German</option>
+                        <option>Czech</option>
+                    </select>
+                </label>
+                <label>Instruction language
+                    <select id="instruction">
+                        <option selected>English</option>
+                        <option>German</option>
+                        <option>Czech</option>
+                    </select>
+                </label>
+            </div>
+
+            <div class="box">
+                <h3>Question source</h3>
+                <div class="sourceRow">
+                    <button class="btn" id="filesBtn" type="button">Select Files</button>
+                    <span class="badge" id="sourceBadge">No source loaded</span>
+                    <input id="files" type="file" multiple accept=".txt,.md,.csv,.json,.html,.htm" class="hidden">
+                </div>
+                <textarea id="sourceText" placeholder="Optional: paste vocabulary, grammar notes, examples, or other learning content."></textarea>
+                <label style="margin-top: 8px; display: flex; gap: 8px; align-items: center;"><input id="requireSource" type="checkbox" checked> Require source material</label>
+            </div>
+
+            <div class="box">
+                <div class="fields">
+                    <label>Model
+                        <select id="model">
+                            <option value="gemini-2.5-flash" selected>Gemini 2.5 Flash</option>
+                            <option value="gemini-1.5-flash">Gemini 1.5 Flash</option>
+                        </select>
+                    </label>
+                    <label>API key
+                        <input id="apiKey" type="password" autocomplete="off" placeholder="Paste Gemini API key">
+                    </label>
+                </div>
+                <div class="actions">
+                    <a class="btn" id="getKey" href="https://aistudio.google.com/apikey" target="_blank" rel="noopener noreferrer">Get API Key</a>
+                    <button class="btn" id="test" type="button">Test Connection</button>
+                    <button class="btn" id="generate" type="button" disabled>Generate Questions</button>
+                    <button class="btn primary" id="start" type="button" disabled>Start Test</button>
+                </div>
+                <div id="status" class="status">Enter an API key and test the connection.</div>
+            </div>
+
+            <div class="box small" style="margin-top: 14px;">
+                <b>Test behavior:</b> Questions are grouped into sections. After selecting <b>Finish Section</b>, the completed section is locked and cannot be changed. Listening items use written transcript simulations because this single-file version does not generate or play audio. This is a training tool, not an official certificate.
+            </div>
+        </section>
+    </div>
+
+    <!-- Results Modal -->
+    <div class="modal hidden" id="results">
+        <section class="card">
+            <h2>Final Results</h2>
+            <div class="summary">
+                <div class="stat"><b id="pct">0%</b>Overall</div>
+                <div class="stat"><b id="correct">0/0</b>Correct</div>
+                <div class="stat"><b id="answered">0/0</b>Answered</div>
+                <div class="stat"><b id="used">0m</b>Time</div>
+            </div>
+            <div id="sectionScores" class="box"></div>
+            <div id="recommendation" class="recommendation"></div>
+            <div id="details"></div>
+            <div class="actions">
+                <button class="btn primary" onclick="location.reload()">Return Home</button>
+            </div>
+        </section>
+    </div>
+
+    <div id="toast" class="toast hidden"></div>
+
+    <!-- ==========================================
+       5. JAVASCRIPT LOGIC & CONTROLLERS
+       ========================================== -->
+    <script>
+        'use strict';
+
+        // --- DOM Selectors & State Constants ---
+        const $ = id => document.getElementById(id);
+        const SECTIONS = ['Grammar and Vocabulary', 'Reading Comprehension', 'Listening and Context', 'Functional Language'];
+        
+        let connected = false, bank = [], Q = [], sections = [], sectionIndex = 0;
+        let idx = 0, answers = [], confidence = [], locked = new Set(), source = '';
+        let tick = null, remaining = 0, startTime = 0;
+
+        // --- UI Feedback Utilities ---
+        function toast(m, b = false) {
+            const t = $('toast');
+            t.textContent = m;
+            t.className = 'toast' + (b ? ' bad' : '');
+            clearTimeout(t.h);
+            t.h = setTimeout(() => t.classList.add('hidden'), 3500);
+        }
+
+        function status(m, s = '') {
+            const e = $('status');
+            e.textContent = m;
+            e.className = 'status' + (s ? ' ' + s : '');
+        }
+
+        function esc(v) {
+            return String(v).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+        }
+
+        // --- API & JSON Processing ---
+        function extractJSON(text) {
+            let s = String(text || '').trim().replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/, '').trim();
+            for (const m of s.matchAll(/[\{\[]/g)) {
+                const st = m.index, stack = [];
+                let quote = false, slash = false;
+                for (let i = st; i < s.length; i++) {
+                    const c = s[i];
+                    if (quote) {
+                        if (slash) slash = false;
+                        else if (c === '\\') slash = true;
+                        else if (c === '"') quote = false;
+                        continue;
+                    }
+                    if (c === '"') { quote = true; continue; }
+                    if (c === '{' || c === '[') stack.push(c);
+                    else if (c === '}' || c === ']') {
+                        const o = stack.pop();
+                        if ((o === '{' && c !== '}') || (o === '[' && c !== ']')) break;
+                        if (!stack.length) {
+                            try { return JSON.parse(s.slice(st, i + 1)); } catch { break; }
+                        }
+                    }
+                }
+            }
+            throw Error('No valid JSON returned');
+        }
+
+        async function gemini(promptText) {
+            const key = $('apiKey').value.trim();
+            if (!key) throw Error('API key required');
+            const u = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent($('model').value)}:generateContent`;
+            const r = await fetch(u, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },
+                body: JSON.stringify({ contents: [{ parts: [{ text: promptText }] }], generationConfig: { responseMimeType: 'application/json' } })
+            });
+            const d = await r.json().catch(() => ({}));
+            if (!r.ok) throw Error(d?.error?.message || `HTTP ${r.status}`);
+            return d?.candidates?.[0]?.content?.parts?.map(p => p.text || '').join('') || '';
+        }
+
+        // --- Question Normalization & Validation ---
+        function normalize(r) {
+            let o = r.o || r.options, a = r.a ?? r.answer;
+            if (!Array.isArray(o) || o.length !== 4) return null;
+            if (typeof a === 'string' && /^[A-D]$/i.test(a)) a = a.toUpperCase().charCodeAt(0) - 65;
+            return {
+                q: String(r.q || r.question || '').trim(),
+                o: o.map(String),
+                a: Number(a),
+                e: String(r.e || r.explanation || '').trim(),
+                topic: String(r.topic || '').trim(),
+                cefr: String(r.cefr || '').toUpperCase(),
+                skill: String(r.skill || '').trim(),
+                type: String(r.type || 'mcq'),
+                passageId: String(r.passageId || ''),
+                rationales: Array.isArray(r.optionRationales) ? r.optionRationales.map(String).slice(0, 4) : []
+            };
+        }
+
+        function validate(q) {
+            const e = [], f = $('focus').value, l =$('level').value;
+            if (!SECTIONS.includes(q.topic)) e.push('invalid section');
+            if (f !== 'Complete CERT evaluation' && q.topic !== f) e.push('wrong section');
+            if (q.cefr !== l) e.push('CEFR mismatch');
+            if (q.e.length < 45) e.push('short explanation');
+            if (new Set(q.o.map(x => x.trim().toLowerCase())).size !== 4) e.push('duplicate options');
+            if (/all of the above|none of the above/i.test(q.o.join(' '))) e.push('weak options');
+            return e;
+        }
+
+        function similarity(a, b) {
+            const tok = x => new Set((x.q + ' ' + x.o.join(' ')).toLowerCase().match(/[a-z\u00c0-\u024f]{4,}/g) || []), A = tok(a), B = tok(b);
+            let n = 0; A.forEach(x => B.has(x) && n++);
+            return n / Math.max(1, new Set([...A, ...B]).size);
+        }
+
+        function distribution(n) {
+            const f = $('focus').value;
+            if (f !== 'Complete CERT evaluation') return `${n} ${f}`;
+            const b = Math.floor(n / 4), r = n % 4;
+            return SECTIONS.map((s, i) => `${b + (i < r ? 1 : 0)} ${s}`).join(', ');
+        }
+
+        function prompt(n, issues = []) {
+            const src = (source + '\n' + $('sourceText').value.trim()).trim().slice(0, 60000);
+            const l = $('level').value, t = $('target').value, ins =$('instruction').value;
+            return `Create exactly ${n} high-quality language test questions aligned to this structure: CEFR-based level selection A1-C1; distinct test sections; overall and per-section scoring. Target language ${t}; instructions/explanations ${ins}; exact CEFR ${l}; required distribution ${distribution(n)}. Return JSON only: {"questions":[{"q":"context and question","o":["option","option","option","option"],"a":0,"e":"clear explanation of at least 45 characters","topic":"exact section name","cefr":"${l}","skill":"specific skill","type":"mcq|gap-fill|sentence-completion|reading-set|transcript-mcq","passageId":"shared identifier for related reading questions or empty","optionRationales":["A rationale","B rationale","C rationale","D rationale"]}]}. Approved sections only: ${SECTIONS.join('; ')}. Use four unique plausible options, exactly one correct answer, zero-based index, no all/none-of-the-above, no trick questions, and no answer clues. Keep all content appropriate for CEFR ${l}. ${src ? 'Ground contexts and vocabulary in this source without inventing unsupported source facts:\n' + src : 'Use general language-learning content.'}${issues.length ? ' Replace rejected items and correct: ' + issues.join('; ') : ''}`;
+        }
+
+        // --- Workflow Actions (Test, Generate, Run) ---
+        async function testConnection() {
+            const b = $('test');
+            b.disabled = true;
+            status('Testing connection...');
+            try {
+                const d = extractJSON(await gemini('Return only {"connected":true}'));
+                if (d.connected !== true) throw Error('Unexpected response');
+                connected = true;
+                $('generate').disabled = false;
+                status('Connection successful.', 'ok');
+            } catch (e) {
+                connected = false;
+                $('generate').disabled = true;
+                status('Connection failed: ' + e.message, 'bad');
+            } finally {
+                b.disabled = false;
+            }
+        }
+
+        async function generateQuestions() {
+            if (!connected) return;
+            const src = (source + $('sourceText').value.trim()).trim();
+            if ($('requireSource').checked && !src) return toast('Load or paste source material first.', true);
+            bank = [];
+            $('generate').disabled = true;
+            let issues = [];
+            try {
+                for (let round = 0; round < 5 && bank.length < +$('count').value; round++) {
+                    status(`Generating and validating ${bank.length}/${$('count').value}...`);
+                    const d = extractJSON(await gemini(prompt(+$('count').value - bank.length, issues.slice(-12))));
+                    const items = (d.questions || []).map(normalize).filter(Boolean);
+                    issues = [];
+                    for (const q of items) {
+                        const err = validate(q);
+                        if (err.length) { issues.push(...err); continue; }
+                        if (!bank.some(x => similarity(x, q) > .72)) bank.push(q);
+                    }
+                    bank = bank.slice(0, +$('count').value);
+                }
+                if (!bank.length) throw Error('No questions passed quality validation');
+                $('start').disabled = false;
+                status(bank.length == +$('count').value ? `Loaded ${bank.length} validated questions.` : `Loaded ${bank.length} validated questions; weak items were rejected.`, 'ok');
+            } catch (e) {
+                bank = [];
+                $('start').disabled = true;
+                status('Generation failed: ' + e.message, 'bad');
+            } finally {
+                $('generate').disabled = false;
+            }
+        }
+
+        function buildSections() {
+            const active = $('focus').value === 'Complete CERT evaluation' ? SECTIONS : [$('focus').value];
+            sections = active.map(name => ({ name, indexes: Q.map((q, i) => q.topic === name ? i : -1).filter(i => i >= 0 })).filter(s => s.indexes.length);
+            sectionIndex = 0;
+            idx = sections[0].indexes[0];
+        }
+
+        function startTest() {
+            Q = bank.slice();
+            answers = Array(Q.length).fill(null);
+            confidence = Array(Q.length).fill('');
+            locked = new Set();
+            buildSections();
+            startTime = Date.now();
+            $('home').classList.add('hidden');
+            $('confidenceWrap').classList.remove('hidden');$('modeLabel').textContent = 'Test in progress';
+            resetTimer();
+            render();
+        }
+
+        function timeLimit() { return $('practiceMode').value === 'sprint' ? 30 : 60; }
+        
+        function resetTimer() {
+            remaining = timeLimit();
+            clearInterval(tick);
+            $('timer').textContent = `00:00:${String(remaining).padStart(2, '0')}`;
+            tick = setInterval(() => {
+                remaining--;
+                const m = Math.floor(remaining / 60), s = remaining % 60;
+                $('timer').textContent = `00:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+                if (remaining <= 0) { clearInterval(tick); goNext(); }
+            }, 1000);
+        }
+
+        function currentSection() { return sections[sectionIndex]; }
+
+        function render() {
+            const q = Q[idx], s = currentSection(), pos = s.indexes.indexOf(idx);
+            $('sectionTitle').textContent = s.name;
+            $('sectionProgress').textContent = `Section ${sectionIndex + 1} of ${sections.length} · ${pos + 1}/${s.indexes.length}`;
+            $('num').textContent = `Question ${idx + 1} of ${Q.length}`;
+            $('skill').textContent = q.skill;
+            $('stem').textContent = q.q;
+            $('answers').innerHTML = '';
+            
+            q.o.forEach((v, k) => {
+                const l = document.createElement('label');
+                l.className = 'option' + (answers[idx] === k ? ' selected' : '');
+                const r = document.createElement('input');
+                r.type = 'radio'; r.name = 'answer'; r.checked = answers[idx] === k;
+                r.onchange = () => { answers[idx] = k; render(); };
+                const b = document.createElement('b');
+                b.textContent = String.fromCharCode(65 + k) + '.';
+                l.append(r, b, document.createTextNode(v));
+                $('answers').appendChild(l);
+            });
+
+            $('confidence').value = confidence[idx];$('prev').disabled = pos === 0;
+            $('next').textContent = pos === s.indexes.length - 1 ? 'Finish Section' : 'Next Question';$('finishSection').textContent = sectionIndex === sections.length - 1 ? 'Finish Test' : 'Finish Section';
+            nav();
+        }
+
+        function nav() {
+            const s = currentSection();
+            $('nav').innerHTML = '';
+            s.indexes.forEach(i => {
+                const b = document.createElement('button');
+                b.className = 'qbtn' + (answers[i] !== null ? ' done' : '') + (i === idx ? ' current' : '');
+                b.textContent = s.indexes.indexOf(i) + 1;
+                b.onclick = () => { idx = i; resetTimer(); render(); };
+                $('nav').appendChild(b);
+            });
+        }
+
+        function goNext() {
+            const s = currentSection(), p = s.indexes.indexOf(idx);
+            if (p < s.indexes.length - 1) { idx = s.indexes[p + 1]; resetTimer(); render(); }
+            else finishSection();
+        }
+
+        function finishSection() {
+            const s = currentSection();
+            locked.add(s.name);
+            if (sectionIndex < sections.length - 1) {
+                sectionIndex++;
+                idx = currentSection().indexes[0];
+                resetTimer();
+                render();
+                toast(`${s.name} locked. You cannot return to it.`);
+            } else {
+                finish();
+            }
+        }
+
+        // --- Recommendations & Results Calculation ---
+        function buildRecommendations(overall) {
+            const stats = sections.map(s => {
+                const correct = s.indexes.filter(i => answers[i] === Q[i].a).length;
+                return { name: s.name, pct: Math.round(correct / s.indexes.length * 100) };
+            }).sort((a, b) => b.pct - a.pct);
+
+            const strong = stats.filter(x => x.pct >= 75), focus = stats.filter(x => x.pct < 65);
+            const strongest = strong.length ? strong : stats.slice(0, 1);
+            const weakest = focus.length ? focus : stats.slice(-1);
+            const level = $('level').value;
+            let readiness = overall >= 80 ? `Strong ${level} performance.` : `Build consistency at ${level} before moving higher.`;
+
+            const sectionAdvice = {
+                'Grammar and Vocabulary': 'Practise sentence completion, word choice, and grammar forms.',
+                'Reading Comprehension': 'Practise short emails, notices, messages, and passage-based questions.',
+                'Listening and Context': 'Practise written transcripts, speaker intent, and workplace announcements.',
+                'Functional Language': 'Practise appropriate replies, requests, suggestions, and apologies.'
+            };
+
+            const next = weakest[0];
+            $('recommendation').innerHTML = `<h3>Personalized Recommendations</h3><div class="recGrid">` +
+                `<div class="recBlock"><b>Strong areas</b><ul>` + strongest.map(x => `<li>${esc(x.name)} (${x.pct}%)</li>`).join('') + `</ul></div>` +
+                `<div class="recBlock focus"><b>Focus areas</b><ul>` + weakest.map(x => `<li>${esc(x.name)} (${x.pct}%)</li>`).join('') + `</ul></div>` +
+                `<div class="recBlock plan"><b>Suggested learning plan</b><ul>` + weakest.map(x => `<li>${esc(sectionAdvice[x.name] || ('Review ' + x.name + '.'))}</li>`).join('') + `<li>Retake a focused ${esc(next.name)} test at ${esc(level)} with 10 questions.</li></ul><div class="recLevel">CEFR recommendation: ${esc(readiness)}</div></div></div>`;
+        }
+
+        function finish() {
+            clearInterval(tick);
+            const c = Q.filter((q, i) => answers[i] === q.a).length;
+            const n = answers.filter(x => x !== null).length;
+            const p = Math.round(c / Q.length * 100);
+
+            $('pct').textContent = p + '\%';$('correct').textContent = `${c}/${Q.length}`;
+            $('answered').textContent = `${n}/${Q.length}`;
+            $('used').textContent = Math.max(1, Math.ceil((Date.now() - startTime) / 60000)) + 'm';
+
+            $('sectionScores').innerHTML = '<h3>Section results</h3>' + sections.map(s => {
+                const cc = s.indexes.filter(i => answers[i] === Q[i].a).length;
+                const pp = Math.round(cc / s.indexes.length * 100);
+                return `<div class="barRow"><b>${esc(s.name)}</b><div class="bar"><div class="fill" style="width:${pp}%"></div></div><span>${pp}%</span></div>`;
+            }).join('');
+
+            buildRecommendations(p);
+
+            $('details').innerHTML = Q.map((q, i) => `<div class="result ${answers[i] === q.a ? '' : 'wrong'}"><b>Question ${i + 1}: ${answers[i] === q.a ? 'Correct' : 'Incorrect'}</b><br>Your answer: ${esc(answers[i] === null ? 'Not answered' : q.o[answers[i]])}<br>Correct answer: ${esc(q.o[q.a])}<br>Explanation: ${esc(q.e)}<br>Section: ${esc(q.topic)} · CEFR: ${esc(q.cefr)} · Skill: ${esc(q.skill)}<br>Confidence: ${esc(confidence[i] || 'Not selected')}</div>`).join('');
+            $('results').classList.remove('hidden');
+        }
+
+        // --- Event Listeners Initialization ---
+        $('test').onclick = testConnection;
+        $('generate').onclick = generateQuestions;
+        $('start').onclick = startTest;
+        
+        $('filesBtn').onclick = () => $('files').click();$('files').onchange = async e => {
+            let chunks = [];
+            for (const f of e.target.files) {
+                const t = (await f.text()).trim();
+                if (t) chunks.push(`SOURCE FILE: ${f.name}\n${t}`);
+            }
+            source = chunks.join('\n\n').slice(0, 60000);
+            $('sourceBadge').textContent = `${e.target.files.length} file(s) loaded`;
+            bank = []; $('start').disabled = true;
+        };
+
+        $('sourceText').oninput = () => { $('start').disabled = true; bank = []; };$('apiKey').oninput = () => { connected = false; $('generate').disabled = true; $('start').disabled = true; sessionStorage.setItem('geminiApiKey', $('apiKey').value); };$('model').onchange = () => { connected = false; $('generate').disabled = true; $('start').disabled = true; };
+        
+        ['practiceMode', 'count', 'focus', 'level', 'target', 'instruction'].forEach(id => $(id).onchange = () => { bank = [];$('start').disabled = true; });
+        
+        $('prev').onclick = () => {             const s = currentSection(), p = s.indexes.indexOf(idx);             if (p > 0) { idx = s.indexes[p - 1]; resetTimer(); render(); }         };$('next').onclick = goNext;
+        $('finishSection').onclick = finishSection;
+        $('confidence').onchange = () => confidence[idx] =$('confidence').value;
+
+        // Restore saved session API key if available
+        const saved = sessionStorage.getItem('geminiApiKey');
+        if (saved) {
+            $('apiKey').value = saved;
+            status('API key restored for this browser tab. Test the connection.');
+        }
+    </script>
+</body>
+</html>
